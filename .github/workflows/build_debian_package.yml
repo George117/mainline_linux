@@ -1,0 +1,69 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Build Debian package
+run-name: Build Debian package
+on:
+  push:
+    branches: [ "v5.15-xeno" ]
+  workflow_dispatch:
+
+env:
+  # name of the release archive
+  release_package: "linux-kernel-v5.15-xeno"
+  
+  kernel_config: "xeno-dell.config"
+  
+jobs:
+  build_package:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Update packages index files
+        run:
+          sudo apt-get update
+          
+      - name: Install toolchain
+        shell: bash
+        run: |
+          sudo apt-get -y install fakeroot build-essential bc bison flex libssl-dev libelf-dev libncurses-dev bzip2
+        timeout-minutes: 5
+
+      - name: Get xenomai
+        shell: bash
+        run: |
+          cd ..
+          wget https://source.denx.de/Xenomai/xenomai/-/archive/v3.2.4/xenomai-v3.2.4.tar.bz2
+          tar xjvf xenomai-v3.2.4.tar.bz2
+
+      - name: Prepare kernel
+        shell: bash
+        run: |
+          ../xenomai-v3.2.4/scripts/prepare-kernel.sh --arch=x86_64 --linux=./
+          
+      - name: Set kernel config
+        shell: bash
+        run: |
+          cp ${{env.kernel_config}} .config
+
+      - name: Make debian package
+        shell: bash
+        run: |
+          fakeroot make deb-pkg -j`nproc`
+
+      - name: Prepare artifacts
+        shell: bash
+        run: |
+          mkdir artifacts 
+          cp ../*.deb artifacts/
+          cd artifacts/
+          
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{env.release_package}}
+          path: artifacts/*.deb
+          retention-days: 90          
