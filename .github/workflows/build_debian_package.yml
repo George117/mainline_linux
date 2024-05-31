@@ -11,7 +11,7 @@ env:
   # name of the release archive
   release_package: "linux-kernel-v5.15-xeno"
   
-  kernel_config: "arch/x86/configs/x86_64_xeno_defconfig"
+  kernel_config: "arch/x86/configs/xeno/xeno_dell_7040.config"
   
 jobs:
   build_package:
